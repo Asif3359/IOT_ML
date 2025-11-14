@@ -2,6 +2,7 @@ services:
   - type: web
     name: ml-service
     env: python
+    rootDir: ml_service
     buildCommand: pip install -r requirements_huggingface.txt
     startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 180 app_huggingface:app
     envVars:
