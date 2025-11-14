@@ -19,6 +19,17 @@ CORS(app)
 models = {}  # Dict to store multiple models
 processors = {}  # Dict to store multiple processors
 
+# Load models at startup (for gunicorn/production)
+# This ensures models load when the module is imported by gunicorn
+def initialize_models():
+    """Load models when module is imported"""
+    if not models:  # Only load if not already loaded
+        load_models()
+
+# Initialize models when running with gunicorn (not in __main__)
+if __name__ != '__main__':
+    initialize_models()
+
 # ============================================================================
 # 🎯 AVAILABLE MODELS - Choose the best for your needs:
 # ============================================================================
