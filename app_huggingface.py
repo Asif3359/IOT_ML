@@ -24,8 +24,16 @@ processors = {}  # Dict to store multiple processors
 def ensure_models_loaded():
     """Ensure models are loaded (lazy loading for production)"""
     if not models:  # Only load if not already loaded
-        print("🔄 Models not loaded yet, loading now...")
-        load_models()
+        try:
+            print("🔄 Models not loaded yet, loading now...")
+            load_models()
+            if not models:
+                print("⚠️  Warning: No models loaded after load_models() call")
+        except Exception as e:
+            print(f"❌ Error loading models: {e}")
+            import traceback
+            traceback.print_exc()
+            # Don't crash - service can still respond (will return error on predict)
 
 # ============================================================================
 # 🎯 AVAILABLE MODELS - Choose the best for your needs:
@@ -206,6 +214,9 @@ def load_models():
             
         except Exception as e:
             print(f"❌ Failed to load {model_key}: {e}")
+            import traceback
+            traceback.print_exc()
+            # Continue to next model instead of crashing
     
     print(f"\n{'='*60}")
     print(f"✅ Loaded {len(models)}/{len(models_to_load)} models successfully")
