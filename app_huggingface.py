@@ -9,6 +9,7 @@ import json
 import torch
 import numpy as np
 import requests
+import threading
 
 load_dotenv()
 
@@ -18,12 +19,34 @@ CORS(app)
 # Global variables for models and processors
 models = {}  # Dict to store multiple models
 processors = {}  # Dict to store multiple processors
+_models_loading = False  # Flag to prevent concurrent loading
+_models_lock = threading.Lock()  # Lock for thread-safe model loading
 
 # Load models lazily on first request (for gunicorn/production)
 # This prevents blocking during worker startup
 def ensure_models_loaded():
-    """Ensure models are loaded (lazy loading for production)"""
-    if not models:  # Only load if not already loaded
+    """Ensure models are loaded (lazy loading for production) - thread-safe"""
+    global _models_loading
+    
+    # Quick check without lock (most common case)
+    if models:
+        return
+    
+    # Acquire lock to prevent concurrent loading
+    with _models_lock:
+        # Double-check after acquiring lock
+        if models:
+            return
+        
+        # Check if another thread is already loading
+        if _models_loading:
+            # Wait for other thread to finish loading
+            while _models_loading:
+                threading.Event().wait(0.1)
+            return
+        
+        # Mark as loading
+        _models_loading = True
         try:
             print("🔄 Models not loaded yet, loading now...")
             load_models()
@@ -34,6 +57,8 @@ def ensure_models_loaded():
             import traceback
             traceback.print_exc()
             # Don't crash - service can still respond (will return error on predict)
+        finally:
+            _models_loading = False
 
 # ============================================================================
 # 🎯 AVAILABLE MODELS - Choose the best for your needs:
